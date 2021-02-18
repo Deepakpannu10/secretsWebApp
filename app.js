@@ -2,28 +2,32 @@
 const express = require("express");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const encrypt = require("mongoose-encryption");
 
-
+require("dotenv").config();
 const app = express();
 app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-
-const DB = "mongodb+srv://admin:testdb@usersdb.tyaug.mongodb.net/UsersDB?retryWrites=true&w=majority";
 mongoose
-    .connect(DB, {
+    .connect(process.env.DB, {
         useNewUrlParser: true,
         useUnifiedTopology: true
     }).then(function (conn) {
         console.log("DB connected");
     });
 
-const userSchema = {
+const userSchema = new mongoose.Schema({
     email: String,
     password: String
-}
+});
+
+userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"] });
+// add this encrypt package as plugin in userSchema before making model of this schema.
+
+
 const User = mongoose.model("User", userSchema);
 
 app.get("/", function (req, res) {
@@ -42,9 +46,9 @@ app.route("/login")
             if (err) {
                 res.redirect("/login");
             } else {
-                if( userFound && userFound.password === reqPassword ){
-                    res.render( "secrets" );
-                }else{
+                if (userFound && userFound.password === reqPassword) {
+                    res.render("secrets");
+                } else {
                     res.redirect("/login");
                 }
             }
@@ -70,9 +74,7 @@ app.route("/register")
                 res.render("secrets");
         });
 
-
     });
-
 
 
 let port = process.env.PORT;
@@ -83,3 +85,4 @@ if (port == null || port == "") {
 app.listen(port, function () {
     console.log("server is started sucessfully on port " + port);
 });
+
